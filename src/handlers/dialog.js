@@ -1,6 +1,9 @@
 // src/handlers/dialog.js
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
+import { renderToStaticMarkup } from 'react-dom/server';
+import React from 'react';
+import Report from '../Report.js';
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -30,6 +33,43 @@ const allQuestions = {
   "HR и внутренняя инфраструктура": hrQuestions,
   "Коммуникации и маркетинг": marketingQuestions,
   "Новые технологии": newTechQuestions,
+};
+
+// Функция для генерации HTML-отчета
+const generateReportHtml = (userData) => {
+  const componentHtml = renderToStaticMarkup(React.createElement(Report, { userData }));
+  return `
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Отчет по диагностике бизнеса</title>
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; line-height: 1.6; }
+          .report-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+          .report-title { color: #4CAF50; text-align: center; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+          .report-intro, .report-outro { font-size: 16px; margin-bottom: 20px; text-align: justify; }
+          .priority-section { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #ddd; }
+          .priority-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+          .priority-title.самый-высокий-приоритет { color: #D32F2F; border-bottom: 2px solid #D32F2F; padding-bottom: 5px; }
+          .priority-title.высокий-приоритет { color: #FF5722; border-bottom: 2px solid #FF5722; padding-bottom: 5px; }
+          .priority-title.средний-приоритет { color: #FFC107; border-bottom: 2px solid #FFC107; padding-bottom: 5px; }
+          .priority-title.низкий-приоритет { color: #03A9F4; border-bottom: 2px solid #03A9F4; padding-bottom: 5px; }
+          .priority-title.отсутствует-приоритет { color: #8BC34A; border-bottom: 2px solid #8BC34A; padding-bottom: 5px; }
+          .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+          .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
+          .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
+          .cta-button { text-align: center; margin-top: 30px; }
+          .cta-button a { background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-size: 18px; transition: background-color 0.3s ease; }
+          .cta-button a:hover { background-color: #45a049; }
+        </style>
+    </head>
+    <body>
+        ${componentHtml}
+    </body>
+    </html>
+  `;
 };
 
 const startDialog = async (ctx, type) => {
@@ -124,17 +164,24 @@ const handleAnswer = async (ctx) => {
   if (nextQuestion === null) {
       const currentBlockIndex = blocks.indexOf(current_block);
       nextBlock = blocks[currentBlockIndex + 1];
-      nextQuestion = allQuestions[nextBlock]?.[0]?.id;
-      replyText = allQuestions[nextBlock]?.[0]?.text;
       
       // Если это последний блок, завершаем диагностику
       if (!nextBlock) {
           await ctx.reply("Диагностика завершена. Спасибо за ответы!");
-          // Здесь будет логика для генерации отчета
-          // Пока что просто сбрасываем статус
+          
+          const reportHtml = generateReportHtml(userData);
+          await ctx.replyWithDocument({
+            source: Buffer.from(reportHtml),
+            filename: `Отчет_${userData.username}.html`
+          });
+          
+          // Сбрасываем статус
           await supabase.from("diagnostics").update({ status: null, current_block: null, current_question: null }).eq("user_id", ctx.from.id);
           return;
       }
+      
+      nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+      replyText = allQuestions[nextBlock]?.[0]?.text;
       
   } else {
       replyText = currentBlockQuestions.find(q => q.id === nextQuestion).text;
