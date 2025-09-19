@@ -1,0 +1,12 @@
+{
+  "name": "digital-therapist-bot",
+  "version": "1.0.0",
+  "description": "Интерактивный Telegram-бот для диагностики бизнеса, выявления проблемных зон и предоставления рекомендаций.",
+  "main": "api/bot.js",
+  "scripts": {
+    "start": "node api/bot.js"
+  },
+  "dependencies": {
+    "grammy": "^1.21.1"
+  }
+}
