@@ -1,4 +1,6 @@
 import { Bot, webhookCallback } from "grammy";
+import startHandler from "../src/handlers/start.js";
+import buttonsHandler from "../src/handlers/buttons.js";
 
 // Получаем токен из переменных окружения Vercel
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -7,12 +9,10 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const bot = new Bot(BOT_TOKEN);
 
 // Обработчик команды /start
-bot.command("start", async (ctx) => {
-  await ctx.reply("Здравствуйте! Я Digital-терапевт для бизнеса, и готов провести быструю диагностику вашего бизнеса. Мы можем пойти двумя путями: Полная диагностика или Проверка по блокам.");
-});
+bot.command("start", startHandler);
 
-// Обработчик всех остальных сообщений
-bot.on("message", (ctx) => ctx.reply("Я пока умею отвечать только на команду /start."));
+// Обработчик нажатий на инлайн-кнопки
+bot.on("callback_query:data", buttonsHandler);
 
 // Экспортируем обработчик для Vercel
 export default webhookCallback(bot, "express");
