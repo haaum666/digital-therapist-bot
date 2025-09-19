@@ -1,4 +1,5 @@
 import React from 'react';
+import './Report.css';
 
 const Report = ({ userData }) => {
   const { problem_summary } = userData;
