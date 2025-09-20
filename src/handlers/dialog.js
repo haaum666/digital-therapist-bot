@@ -1,8 +1,5 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-// import { renderToStaticMarkup } from 'react-dom/server'; // Удалено
-// import React from 'react'; // Удалено
-// import Report from '../Report.js'; // Удалено
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -87,6 +84,63 @@ const generateReportHtml = (userData) => {
     `;
 };
 
+const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary) => {
+  let replyText = "";
+  let buttons = null;
+
+  if (!nextBlock) {
+    // Если это последний блок, завершаем диагностику
+    await ctx.reply("Диагностика завершена. Спасибо за ответы!");
+
+    const { data: userData } = await supabase
+      .from("diagnostics")
+      .select("*")
+      .eq("user_id", ctx.from.id)
+      .single();
+
+    const reportHtml = generateReportHtml(userData);
+    await ctx.replyWithDocument({
+      source: Buffer.from(reportHtml),
+      filename: `Отчет_${userData.username}.html`,
+    });
+
+    // Сбрасываем статус
+    await supabase
+      .from("diagnostics")
+      .update({ status: null, current_block: null, current_question: null })
+      .eq("user_id", ctx.from.id);
+    return;
+  }
+
+  const nextQuestionData = allQuestions[nextBlock].find(q => q.id === nextQuestion);
+  replyText = nextQuestionData.text;
+  buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: key }]);
+
+  // Обновляем базу данных
+  const { error: updateError } = await supabase
+    .from("diagnostics")
+    .update({
+      answers: updatedAnswers,
+      problem_summary: updatedProblemSummary,
+      current_block: nextBlock,
+      current_question: nextQuestion,
+    })
+    .eq("user_id", ctx.from.id);
+
+  if (updateError) {
+    console.error("Ошибка при обновлении данных:", updateError);
+    await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте начать заново.");
+    return;
+  }
+
+  const replyOptions = {};
+  if (buttons && buttons.length > 0) {
+    replyOptions.reply_markup = { inline_keyboard: buttons };
+  }
+
+  await ctx.reply(replyText, replyOptions);
+}
+
 const startDialog = async (ctx) => {
   const { data, error } = await supabase
     .from("diagnostics")
@@ -118,9 +172,7 @@ const startDialog = async (ctx) => {
   });
 };
 
-const handleAnswer = async (ctx) => {
-  const userAnswer = ctx.message.text;
-
+const handleAnswer = async (ctx, userAnswer) => {
   // Получаем текущие данные пользователя из базы
   const { data: userData, error: fetchError } = await supabase
     .from("diagnostics")
@@ -167,8 +219,6 @@ const handleAnswer = async (ctx) => {
 
   let nextBlock = current_block;
   let nextQuestion = nextQuestionId;
-  let replyText = "";
-  let buttons = null;
 
   // Если ответа нет, переходим к следующему вопросу по порядку
   if (nextQuestionId === undefined) {
@@ -179,56 +229,10 @@ const handleAnswer = async (ctx) => {
   if (nextQuestion === null) {
     const currentBlockIndex = blocks.indexOf(current_block);
     nextBlock = blocks[currentBlockIndex + 1];
-
-    // Если это последний блок, завершаем диагностику
-    if (!nextBlock) {
-      await ctx.reply("Диагностика завершена. Спасибо за ответы!");
-
-      const reportHtml = generateReportHtml(userData);
-      await ctx.replyWithDocument({
-        source: Buffer.from(reportHtml),
-        filename: `Отчет_${userData.username}.html`,
-      });
-
-      // Сбрасываем статус
-      await supabase
-        .from("diagnostics")
-        .update({ status: null, current_block: null, current_question: null })
-        .eq("user_id", ctx.from.id);
-      return;
-    }
-
     nextQuestion = allQuestions[nextBlock]?.[0]?.id;
-    replyText = allQuestions[nextBlock]?.[0]?.text;
-    buttons = Object.keys(allQuestions[nextBlock]?.[0]?.answers || {}).map(key => [{ text: key, callback_data: key }]);
-  } else {
-    const nextQuestionData = currentBlockQuestions.find((q) => q.id === nextQuestion);
-    replyText = nextQuestionData.text;
-    buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: key }]);
   }
 
-  // Обновляем базу данных
-  const { error: updateError } = await supabase
-    .from("diagnostics")
-    .update({
-      answers: updatedAnswers,
-      problem_summary: updatedProblemSummary,
-      current_block: nextBlock,
-      current_question: nextQuestion,
-    })
-    .eq("user_id", ctx.from.id);
-
-  if (updateError) {
-    console.error("Ошибка при обновлении данных:", updateError);
-    return;
-  }
-
-  const replyOptions = {};
-  if (buttons && buttons.length > 0) {
-    replyOptions.reply_markup = { inline_keyboard: buttons };
-  }
-
-  await ctx.reply(replyText, replyOptions);
+  await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary);
 };
 
 export { startDialog, handleAnswer };
