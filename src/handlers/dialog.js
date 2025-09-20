@@ -1,7 +1,6 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-// Readable stream import is not needed anymore
-// import { Readable } from "stream"; 
+import { InputFile } from "grammy";
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -102,10 +101,7 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
         const reportHtml = generateReportHtml(userData);
         
         try {
-            await ctx.replyWithDocument({
-                source: Buffer.from(reportHtml),
-                filename: `Отчет_${userData.username}.html`,
-            });
+            await ctx.replyWithDocument(new InputFile(Buffer.from(reportHtml), `Отчет_${userData.username}.html`));
         } catch (error) {
             console.error("Ошибка при отправке отчета:", error);
             await ctx.reply("Не удалось сгенерировать отчет. Пожалуйста, попробуйте еще раз.");
