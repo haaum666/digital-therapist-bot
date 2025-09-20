@@ -110,7 +110,12 @@ const startDialog = async (ctx) => {
   }
 
   const firstQuestion = allQuestions[blocks[0]][0];
-  await ctx.reply(firstQuestion.text);
+  const buttons = Object.keys(firstQuestion.answers).map(key => [{ text: key, callback_data: key }]);
+  await ctx.reply(firstQuestion.text, {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  });
 };
 
 const handleAnswer = async (ctx) => {
@@ -163,6 +168,7 @@ const handleAnswer = async (ctx) => {
   let nextBlock = current_block;
   let nextQuestion = nextQuestionId;
   let replyText = "";
+  let buttons = null;
 
   // Если ответа нет, переходим к следующему вопросу по порядку
   if (nextQuestionId === undefined) {
@@ -194,8 +200,11 @@ const handleAnswer = async (ctx) => {
 
     nextQuestion = allQuestions[nextBlock]?.[0]?.id;
     replyText = allQuestions[nextBlock]?.[0]?.text;
+    buttons = Object.keys(allQuestions[nextBlock]?.[0]?.answers || {}).map(key => [{ text: key, callback_data: key }]);
   } else {
-    replyText = currentBlockQuestions.find((q) => q.id === nextQuestion).text;
+    const nextQuestionData = currentBlockQuestions.find((q) => q.id === nextQuestion);
+    replyText = nextQuestionData.text;
+    buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: key }]);
   }
 
   // Обновляем базу данных
@@ -214,7 +223,12 @@ const handleAnswer = async (ctx) => {
     return;
   }
 
-  await ctx.reply(replyText);
+  const replyOptions = {};
+  if (buttons && buttons.length > 0) {
+    replyOptions.reply_markup = { inline_keyboard: buttons };
+  }
+
+  await ctx.reply(replyText, replyOptions);
 };
 
 export { startDialog, handleAnswer };
