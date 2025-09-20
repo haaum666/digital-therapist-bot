@@ -10,7 +10,7 @@ import { crmAndSalesQuestions } from "../data/CRM_и_продажи.js";
 import { automationQuestions } from "../data/Автоматизация_и_процессы.js";
 import { ecommerceQuestions } from "../data/E-commerce.js";
 import { fintechQuestions } from "../data/Финансы_и_финтех.js";
-import { cybersecurityQuestions } from "../data/Кибербезопасность.
+import { cybersecurityQuestions } from "../data/Кибербезопасность.js";
 import { hrQuestions } from "../data/HR_и_внутренняя_инфраструктура.js";
 import { marketingQuestions } from "../data/Коммуникации_и_маркетинг.js";
 import { newTechQuestions } from "../data/Новые_технологии.js";
@@ -259,7 +259,7 @@ const handleAnswer = async (ctx) => {
             nextBlock = blocks[currentBlockIndex + 1];
             nextQuestion = allQuestions[nextBlock]?.[0]?.id;
         } else {
-            // Если это диагностика по блокам, завершаем диалог
+            // Если диагностика по блокам, завершаем диалог
             nextBlock = null;
             nextQuestion = null;
         }
