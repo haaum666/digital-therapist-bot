@@ -1,10 +1,19 @@
 // src/handlers/contacts.js
 const handleContacts = async (ctx) => {
     await ctx.reply(
-        `Свяжитесь с нами:
-Телефон: +7 (900) 000-00-00
-Email: contact@quantumdev.ru
-Сайт: quantumdev.ru`
+        `Если ты хочешь получить консультацию или у тебя есть вопросы, мы всегда на связи. Выбери, где тебе удобнее:`,
+        {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: 'Telegram', url: 'https://t.me/Quantumdevelop' },
+                    ],
+                    [
+                        { text: 'WhatsApp', url: 'https://wa.me/79994512356' },
+                    ],
+                ],
+            },
+        }
     );
 };
 
