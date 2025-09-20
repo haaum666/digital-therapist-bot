@@ -1,6 +1,6 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-import { startDialog } from "./dialog.js";
+import { startDialog, handleAnswer } from "./dialog.js";
 
 // Создаем короткие ID для каждого блока
 const blockMap = blocks.reduce((acc, block, index) => {
@@ -15,6 +15,9 @@ const reverseBlockMap = Object.entries(blockMap).reduce((acc, [key, value]) => {
 
 const handleButtonPress = async (ctx) => {
   const buttonData = ctx.callbackQuery.data;
+
+  // Убираем анимацию "часов" с кнопки
+  await ctx.answerCallbackQuery();
 
   // Если нажата кнопка "Полная диагностика"
   if (buttonData === "full_diagnosis") {
@@ -39,6 +42,10 @@ const handleButtonPress = async (ctx) => {
       const shortId = buttonData.substring(6);
       const blockName = reverseBlockMap[shortId];
       await startDialog(ctx, "block_diagnosis", blockName);
+  }
+  // Если нажата кнопка-ответ на вопрос
+  else {
+    await handleAnswer(ctx, buttonData);
   }
 };
 
