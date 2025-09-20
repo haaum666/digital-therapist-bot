@@ -1,17 +1,13 @@
-import { Telegraf } from 'telegraf';
+import { Bot } from 'grammy';
 import { supabase } from '../src/database/db.js';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
 import { handleButtonPress } from '../src/handlers/buttons.js';
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
 // Обработка команды /start
-bot.start(async (ctx) => {
-  await ctx.reply(`Привет, ${ctx.from.first_name}! Я Digital-терапевт.
-  
-Я здесь, чтобы помочь тебе провести диагностику твоего бизнеса и найти слабые места, которые мешают ему расти в онлайне.
-  
-Выбери один из вариантов диагностики:`, {
+bot.command('start', async (ctx) => {
+  await ctx.reply(`Здравствуйте! Я Digital-терапевт для бизнеса, и готов провести быструю диагностику вашего бизнеса. Мы можем пойти двумя путями: Полная диагностика или Проверка по блокам.`, {
     reply_markup: {
       inline_keyboard: [
         [
@@ -26,7 +22,7 @@ bot.start(async (ctx) => {
 });
 
 // Обработка текстовых сообщений
-bot.on('text', async (ctx) => {
+bot.on('message', async (ctx) => {
   await handleAnswer(ctx);
 });
 
@@ -37,9 +33,15 @@ bot.on('callback_query', async (ctx) => {
 
 // Vercel будет использовать эту функцию для обработки запросов
 export default async (req, res) => {
-  if (req.method === 'POST') {
-    await bot.handleUpdate(req.body, res);
-  } else {
-    res.status(200).send('Bot is running');
+  try {
+    if (req.method === 'POST') {
+      await bot.handleUpdate(req.body);
+      res.status(200).end();
+    } else {
+      res.status(200).send('Bot is running');
+    }
+  } catch (error) {
+    console.error('Ошибка в обработчике Vercel:', error);
+    res.status(500).send('Внутренняя ошибка сервера');
   }
 };
