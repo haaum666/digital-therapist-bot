@@ -7,7 +7,7 @@
     "start": "node api/bot.js"
   },
   "dependencies": {
-    "grammy": "^1.21.1"
+    "grammy": "^1.21.1",
     "@supabase/supabase-js": "^2.43.4"
   }
 }
