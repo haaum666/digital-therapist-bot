@@ -10,7 +10,7 @@ import { crmAndSalesQuestions } from "../data/CRM_и_продажи.js";
 import { automationQuestions } from "../data/Автоматизация_и_процессы.js";
 import { ecommerceQuestions } from "../data/E-commerce.js";
 import { fintechQuestions } from "../data/Финансы_и_финтех.js";
-import { cybersecurityQuestions } from "../data/Кибербезопасность.js";
+import { cybersecurityQuestions } from "../data/Кибербезопасность.
 import { hrQuestions } from "../data/HR_и_внутренняя_инфраструктура.js";
 import { marketingQuestions } from "../data/Коммуникации_и_маркетинг.js";
 import { newTechQuestions } from "../data/Новые_технологии.js";
@@ -244,28 +244,34 @@ const handleAnswer = async (ctx) => {
     let nextBlock = current_block;
     let nextQuestion = nextQuestionId;
 
+    // --- НАЧАЛО ИСПРАВЛЕННОГО БЛОКА ЛОГИКИ ---
+    // Проверяем, является ли текущий вопрос первым в первом блоке
+    const isFirstQuestionInFirstBlock = (current_block === blocks[0] && current_question === allQuestions[blocks[0]][0].id);
+
     if (nextQuestionId === null) {
-        const currentBlockIndex = blocks.indexOf(current_block);
-        if (status === "full_diagnosis") {
-            // Переходим к следующему блоку, если это полная диагностика
+        if (isFirstQuestionInFirstBlock) {
+            // Если это ответ "Нет" на самый первый вопрос - завершаем всю диагностику
+            nextBlock = null;
+            nextQuestion = null;
+        } else if (status === "full_diagnosis") {
+            // Если это любой другой "конец" блока в режиме полной диагностики, переходим к следующему блоку
+            const currentBlockIndex = blocks.indexOf(current_block);
             nextBlock = blocks[currentBlockIndex + 1];
             nextQuestion = allQuestions[nextBlock]?.[0]?.id;
         } else {
-            // Если диагностика по блокам, завершаем диалог
+            // Если это диагностика по блокам, завершаем диалог
             nextBlock = null;
             nextQuestion = null;
         }
-    }
-    
-    // Если nextQuestionId не указан вообще (undefined), это считается ошибкой в файлах данных
-    // и бот не должен продолжать. Однако, мы оставляем логику для обработки
-    // корректного перехода, если nextQuestionId не равен null.
-    if (nextQuestionId !== null) {
+    } else {
+        // Если есть явный переход (nextQuestionId не равен null), просто следуем ему
         nextQuestion = nextQuestionId;
     }
-
-    // Если nextQuestion все еще не определен, значит, это последний вопрос в блоке.
-    // Переходим к следующему блоку.
+    // --- КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ЛОГИКИ ---
+    
+    // Если nextQuestion все еще не определен, значит, это последний вопрос в блоке
+    // и мы не обработали его как "конец блока". Это может случиться, если у ответа
+    // просто не указано свойство `next`. В этом случае переходим к следующему блоку.
     if (nextQuestion === undefined) {
       const currentBlockIndex = blocks.indexOf(current_block);
       if (status === "full_diagnosis") {
