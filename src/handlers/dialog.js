@@ -114,7 +114,7 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
 
   const nextQuestionData = allQuestions[nextBlock].find(q => q.id === nextQuestion);
   replyText = nextQuestionData.text;
-  buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: key }]);
+  buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: nextQuestionData.answers[key].id }]);
 
   // Обновляем базу данных
   const { error: updateError } = await supabase
@@ -140,37 +140,6 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
 
   await ctx.reply(replyText, replyOptions);
 }
-
-const startDialog = async (ctx) => {
-  const { data, error } = await supabase
-    .from("diagnostics")
-    .upsert(
-      {
-        user_id: ctx.from.id,
-        username: ctx.from.username,
-        answers: {},
-        problem_summary: [],
-        final_report_sent: false,
-        status: "full_diagnosis",
-        current_block: blocks[0],
-        current_question: allQuestions[blocks[0]][0].id,
-      },
-      { onConflict: "user_id" }
-    );
-
-  if (error) {
-    console.error("Ошибка при создании/обновлении записи:", error);
-    return;
-  }
-
-  const firstQuestion = allQuestions[blocks[0]][0];
-  const buttons = Object.keys(firstQuestion.answers).map(key => [{ text: key, callback_data: key }]);
-  await ctx.reply(firstQuestion.text, {
-    reply_markup: {
-      inline_keyboard: buttons,
-    },
-  });
-};
 
 const handleAnswer = async (ctx, userAnswer) => {
   // Получаем текущие данные пользователя из базы
@@ -201,8 +170,22 @@ const handleAnswer = async (ctx, userAnswer) => {
   const currentQuestionData = currentBlockQuestions[currentQuestionIndex];
 
   // Проверяем, есть ли такой ответ
-  const nextQuestionId = currentQuestionData.answers[userAnswer]?.next;
-  const recommendation = currentQuestionData.answers[userAnswer]?.recommendation;
+  let nextQuestionId = currentQuestionData.answers[userAnswer]?.next;
+  let recommendation = currentQuestionData.answers[userAnswer]?.recommendation;
+
+  // Если userAnswer пришел не как текст, а как короткий ID с кнопки
+  if (!nextQuestionId) {
+    // Ищем соответствующий ответ по ID
+    const answerKeys = Object.keys(currentQuestionData.answers);
+    for (const key of answerKeys) {
+      if (currentQuestionData.answers[key].id === userAnswer) {
+        userAnswer = key;
+        nextQuestionId = currentQuestionData.answers[key]?.next;
+        recommendation = currentQuestionData.answers[key]?.recommendation;
+        break;
+      }
+    }
+  }
 
   // Добавляем ответ пользователя
   const updatedAnswers = { ...answers };
