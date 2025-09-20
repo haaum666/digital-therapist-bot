@@ -140,7 +140,18 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
   await ctx.reply(replyText, replyOptions);
 }
 
-const startDialog = async (ctx) => {
+const startDialog = async (ctx, diagnosisType, blockName) => {
+  let firstBlock = blocks[0];
+  let firstQuestionId = allQuestions[firstBlock][0].id;
+  let status = "full_diagnosis";
+
+  // Если это диагностика по блокам
+  if (diagnosisType === "block_diagnosis" && blockName) {
+    firstBlock = blockName;
+    firstQuestionId = allQuestions[firstBlock][0].id;
+    status = "block_diagnosis";
+  }
+
   const { data, error } = await supabase
     .from("diagnostics")
     .upsert(
@@ -150,9 +161,9 @@ const startDialog = async (ctx) => {
         answers: {},
         problem_summary: [],
         final_report_sent: false,
-        status: "full_diagnosis",
-        current_block: blocks[0],
-        current_question: allQuestions[blocks[0]][0].id,
+        status: status,
+        current_block: firstBlock,
+        current_question: firstQuestionId,
       },
       { onConflict: "user_id" }
     );
@@ -162,7 +173,7 @@ const startDialog = async (ctx) => {
     return;
   }
 
-  const firstQuestion = allQuestions[blocks[0]][0];
+  const firstQuestion = allQuestions[firstBlock].find(q => q.id === firstQuestionId);
   const buttons = Object.keys(firstQuestion.answers).map(key => [{ text: key, callback_data: firstQuestion.answers[key].id }]);
   await ctx.reply(firstQuestion.text, {
     reply_markup: {
