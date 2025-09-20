@@ -209,10 +209,9 @@ const handleAnswer = async (ctx) => {
     }
 
     const currentBlockQuestions = allQuestions[current_block];
-    const currentQuestionIndex = currentBlockQuestions.findIndex(
+    const currentQuestionData = currentBlockQuestions.find(
         (q) => q.id === current_question
     );
-    const currentQuestionData = currentBlockQuestions[currentQuestionIndex];
 
     // Находим ключ ответа по его ID
     const answerKey = Object.keys(currentQuestionData.answers).find(
@@ -220,14 +219,14 @@ const handleAnswer = async (ctx) => {
     );
 
     if (!answerKey) {
-      console.error("Ответ с таким ID не найден:", userAnswerId);
-      return;
+        console.error("Ответ с таким ID не найден:", userAnswerId);
+        return;
     }
 
     const answerData = currentQuestionData.answers[answerKey];
 
-    const nextQuestionId = answerData?.next;
-    const recommendation = answerData?.recommendation;
+    const nextQuestionId = answerData.next;
+    const recommendation = answerData.recommendation;
 
     // Добавляем ответ пользователя
     const updatedAnswers = { ...answers };
@@ -245,15 +244,10 @@ const handleAnswer = async (ctx) => {
     let nextBlock = current_block;
     let nextQuestion = nextQuestionId;
 
-    // Если ответа нет, переходим к следующему вопросу по порядку
-    if (nextQuestionId === undefined) {
-        nextQuestion = currentBlockQuestions[currentQuestionIndex + 1]?.id;
-    }
-
-    // Если следующего вопроса в блоке нет, переходим к следующему блоку
-    if (nextQuestion === null) {
+    if (nextQuestionId === null) {
         const currentBlockIndex = blocks.indexOf(current_block);
         if (status === "full_diagnosis") {
+            // Переходим к следующему блоку, если это полная диагностика
             nextBlock = blocks[currentBlockIndex + 1];
             nextQuestion = allQuestions[nextBlock]?.[0]?.id;
         } else {
@@ -263,14 +257,26 @@ const handleAnswer = async (ctx) => {
         }
     }
     
-    // Если вопрос является последним в своем блоке, но не последним в списке, 
-    // и это полная диагностика, то переходим к следующему блоку.
-    if (nextQuestionId === null && status === "full_diagnosis") {
-      const currentBlockIndex = blocks.indexOf(current_block);
-      nextBlock = blocks[currentBlockIndex + 1];
-      nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+    // Если nextQuestionId не указан вообще (undefined), это считается ошибкой в файлах данных
+    // и бот не должен продолжать. Однако, мы оставляем логику для обработки
+    // корректного перехода, если nextQuestionId не равен null.
+    if (nextQuestionId !== null) {
+        nextQuestion = nextQuestionId;
     }
 
+    // Если nextQuestion все еще не определен, значит, это последний вопрос в блоке.
+    // Переходим к следующему блоку.
+    if (nextQuestion === undefined) {
+      const currentBlockIndex = blocks.indexOf(current_block);
+      if (status === "full_diagnosis") {
+        nextBlock = blocks[currentBlockIndex + 1];
+        nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+      } else {
+        nextBlock = null;
+        nextQuestion = null;
+      }
+    }
+    
     await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary);
 };
 
