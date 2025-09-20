@@ -20,17 +20,34 @@ const handleButtonPress = async (ctx) => {
 
     const buttonData = ctx.callbackQuery.data;
 
+    // Добавляем обработку для кнопки "Модульная диагностика"
+    if (buttonData === "start_block_diagnosis") {
+        // Создаем кнопки с короткими ID
+        const blockButtons = blocks.map((block) => ({
+            text: block,
+            callback_data: `block_${blockMap[block]}`,
+        }));
+        await ctx.reply("Выберите блок для диагностики:", {
+            reply_markup: {
+                inline_keyboard: [
+                    blockButtons.slice(0, 2),
+                    blockButtons.slice(2, 4),
+                    blockButtons.slice(4, 6),
+                    blockButtons.slice(6, 8),
+                    blockButtons.slice(8, 10),
+                    blockButtons.slice(10),
+                ],
+            },
+        });
+    }
     // Если нажата кнопка с названием блока
-    if (buttonData.startsWith("block_")) {
+    else if (buttonData.startsWith("block_")) {
         const shortId = buttonData.substring(6);
         const blockName = reverseBlockMap[shortId];
         await startDialog(ctx, "block_diagnosis", blockName);
     }
     // Если нажата кнопка-ответ на вопрос
     else {
-        // Мы теперь передаем handleAnswer весь объект callbackQuery,
-        // чтобы получить доступ к message.text и другим данным,
-        // а также к id ответа.
         await handleAnswer(ctx);
     }
 };
