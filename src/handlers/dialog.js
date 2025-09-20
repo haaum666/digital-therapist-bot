@@ -1,6 +1,7 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
+import { showMainMenu } from "./menu.js"; // Добавил импорт для showMainMenu
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -112,6 +113,9 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
             .from("diagnostics")
             .update({ status: null, current_block: null, current_question: null })
             .eq("user_id", ctx.from.id);
+        
+        await showMainMenu(ctx); // Добавил вызов меню в конце теста
+        
         return;
     }
 
