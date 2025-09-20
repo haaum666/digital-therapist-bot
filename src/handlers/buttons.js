@@ -14,10 +14,10 @@ const reverseBlockMap = Object.entries(blockMap).reduce((acc, [key, value]) => {
 }, {});
 
 const handleButtonPress = async (ctx) => {
-  const buttonData = ctx.callbackQuery.data;
-
-  // Убираем анимацию "часов" с кнопки
+  // Убираем анимацию "часов" с кнопки как можно раньше
   await ctx.answerCallbackQuery();
+
+  const buttonData = ctx.callbackQuery.data;
 
   // Если нажата кнопка "Полная диагностика"
   if (buttonData === "full_diagnosis") {
