@@ -1,4 +1,4 @@
-import { Bot } from 'grammy';
+import { Bot, webhookCallback } from 'grammy';
 import { supabase } from '../src/database/db.js';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
 import { handleButtonPress } from '../src/handlers/buttons.js';
@@ -35,8 +35,8 @@ bot.on('callback_query', async (ctx) => {
 export default async (req, res) => {
   try {
     if (req.method === 'POST') {
-      await bot.handleUpdate(req.body);
-      res.status(200).end();
+      await bot.init();
+      await webhookCallback(bot, 'express')(req, res);
     } else {
       res.status(200).send('Bot is running');
     }
