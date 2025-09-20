@@ -50,36 +50,36 @@ const generateReportHtml = (userData) => {
           <!DOCTYPE html>
           <html lang="ru">
           <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Отчет по диагностике бизнеса</title>
-              <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; line-height: 1.6; }
-                .report-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-                .report-title { color: #4CAF50; text-align: center; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
-                .report-intro, .report-outro { font-size: 16px; margin-bottom: 20px; text-align: justify; }
-                .priority-section { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #ddd; }
-                .priority-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-                .priority-title.самый-высокий-приоритет { color: #D32F2F; border-bottom: 2px solid #D32F2F; padding-bottom: 5px; }
-                .priority-title.высокий-приоритет { color: #FF5722; border-bottom: 2px solid #FF5722; padding-bottom: 5px; }
-                .priority-title.средний-приоритет { color: #FFC107; border-bottom: 2px solid #FFC107; padding-bottom: 5px; }
-                .priority-title.низкий-приоритет { color: #03A9F4; border-bottom: 2px solid #03A9F4; padding-bottom: 5px; }
-                .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-                .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
-                .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
-                .cta-button { text-align: center; margin-top: 30px; }
-                .cta-button a { background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-size: 18px; transition: background-color 0.3s ease; }
-                .cta-button a:hover { background-color: #45a049; }
-              </style>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Отчет по диагностике бизнеса</title>
+            <style>
+              body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; line-height: 1.6; }
+              .report-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+              .report-title { color: #4CAF50; text-align: center; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+              .report-intro, .report-outro { font-size: 16px; margin-bottom: 20px; text-align: justify; }
+              .priority-section { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #ddd; }
+              .priority-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+              .priority-title.самый-высокий-приоритет { color: #D32F2F; border-bottom: 2px solid #D32F2F; padding-bottom: 5px; }
+              .priority-title.высокий-приоритет { color: #FF5722; border-bottom: 2px solid #FF5722; padding-bottom: 5px; }
+              .priority-title.средний-приоритет { color: #FFC107; border-bottom: 2px solid #FFC107; padding-bottom: 5px; }
+              .priority-title.низкий-приоритет { color: #03A9F4; border-bottom: 2px solid #03A9F4; padding-bottom: 5px; }
+              .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+              .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
+              .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
+              .cta-button { text-align: center; margin-top: 30px; }
+              .cta-button a { background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-size: 18px; transition: background-color 0.3s ease; }
+              .cta-button a:hover { background-color: #45a049; }
+            </style>
           </head>
           <body>
-              <div class="report-container">
-                <h1 class="report-title">Отчет по диагностике бизнеса</h1>
-                <div class="report-intro">
-                  Ваш отчет готов! Ниже представлены основные проблемы и упущенные возможности, выявленные в ходе диагностики.
-                </div>
-                ${problemSummaryHtml}
+            <div class="report-container">
+              <h1 class="report-title">Отчет по диагностике бизнеса</h1>
+              <div class="report-intro">
+                Ваш отчет готов! Ниже представлены основные проблемы и упущенные возможности, выявленные в ходе диагностики.
               </div>
+              ${problemSummaryHtml}
+            </div>
           </body>
           </html>
         `;
@@ -100,7 +100,7 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
             .single();
 
         const reportHtml = generateReportHtml(userData);
-        
+
         try {
             await ctx.replyWithDocument(new InputFile(Buffer.from(reportHtml), `Отчет_${userData.username}.html`));
         } catch (error) {
@@ -113,9 +113,9 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
             .from("diagnostics")
             .update({ status: null, current_block: null, current_question: null })
             .eq("user_id", ctx.from.id);
-        
+
         await showMainMenu(ctx); // Добавил вызов меню в конце теста
-        
+
         return;
     }
 
@@ -247,7 +247,14 @@ const handleAnswer = async (ctx) => {
     const updatedProblemSummary = [...problem_summary];
     if (recommendation) {
         updatedProblemSummary.push(recommendation);
-        await ctx.reply(recommendation.text); // Отправляем рекомендацию сразу
+        await ctx.reply(recommendation.text, {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
+                    [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
+                ],
+            },
+        });
     }
 
     let nextBlock = current_block;
@@ -277,7 +284,7 @@ const handleAnswer = async (ctx) => {
         nextQuestion = nextQuestionId;
     }
     // --- КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ЛОГИКИ ---
-    
+
     // Если nextQuestion все еще не определен, значит, это последний вопрос в блоке
     // и мы не обработали его как "конец блока". Это может случиться, если у ответа
     // просто не указано свойство `next`. В этом случае переходим к следующему блоку.
@@ -292,7 +299,10 @@ const handleAnswer = async (ctx) => {
       }
     }
     
-    await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary);
+    // Если рекомендация есть, не отправляем следующий вопрос сразу.
+    if (!recommendation) {
+      await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary);
+    }
 };
 
 export { startDialog, handleAnswer };
