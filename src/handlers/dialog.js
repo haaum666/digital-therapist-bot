@@ -62,7 +62,6 @@ const generateReportHtml = (userData) => {
             .priority-title.высокий-приоритет { color: #FF5722; border-bottom: 2px solid #FF5722; padding-bottom: 5px; }
             .priority-title.средний-приоритет { color: #FFC107; border-bottom: 2px solid #FFC107; padding-bottom: 5px; }
             .priority-title.низкий-приоритет { color: #03A9F4; border-bottom: 2px solid #03A9F4; padding-bottom: 5px; }
-            .priority-title.отсутствует-приоритет { color: #8BC34A; border-bottom: 2px solid #8BC34A; padding-bottom: 5px; }
             .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
             .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
             .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
@@ -140,6 +139,37 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
 
   await ctx.reply(replyText, replyOptions);
 }
+
+const startDialog = async (ctx) => {
+  const { data, error } = await supabase
+    .from("diagnostics")
+    .upsert(
+      {
+        user_id: ctx.from.id,
+        username: ctx.from.username,
+        answers: {},
+        problem_summary: [],
+        final_report_sent: false,
+        status: "full_diagnosis",
+        current_block: blocks[0],
+        current_question: allQuestions[blocks[0]][0].id,
+      },
+      { onConflict: "user_id" }
+    );
+
+  if (error) {
+    console.error("Ошибка при создании/обновлении записи:", error);
+    return;
+  }
+
+  const firstQuestion = allQuestions[blocks[0]][0];
+  const buttons = Object.keys(firstQuestion.answers).map(key => [{ text: key, callback_data: firstQuestion.answers[key].id }]);
+  await ctx.reply(firstQuestion.text, {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  });
+};
 
 const handleAnswer = async (ctx, userAnswer) => {
   // Получаем текущие данные пользователя из базы
