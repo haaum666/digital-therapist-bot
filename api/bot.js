@@ -36,7 +36,8 @@ export default async (req, res) => {
   try {
     if (req.method === 'POST') {
       await bot.init();
-      await webhookCallback(bot, 'express')(req, res);
+      const handler = webhookCallback(bot, 'http');
+      await handler(req, res);
     } else {
       res.status(200).send('Bot is running');
     }
