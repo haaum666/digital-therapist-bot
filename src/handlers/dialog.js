@@ -165,6 +165,15 @@ const handleAnswer = async (ctx) => {
     const answerData = currentQuestionData.answers[answerKey];
     const nextQuestionId = answerData.next;
     const recommendation = answerData.recommendation;
+    
+    // ДОБАВЛЕНЫ ЛОГИ ДЛЯ ОТЛАДКИ
+    console.log("-----------------------------------------");
+    console.log("Текущий вопрос:", currentQuestion);
+    console.log("Текущий блок:", current_block);
+    console.log("ID ответа:", userAnswerId);
+    console.log("Значение nextQuestionId:", nextQuestionId);
+    console.log("Наличие рекомендации:", !!recommendation); // !!преобразует в true/false
+    console.log("-----------------------------------------");
 
     const updatedAnswers = { ...answers };
     updatedAnswers[current_block] = {
