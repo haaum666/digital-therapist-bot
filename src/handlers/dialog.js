@@ -1,7 +1,7 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
-import { showMainMenu } from "./menu.js"; // Добавил импорт для showMainMenu
+import { showMainMenu } from "./menu.js";
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -85,19 +85,13 @@ const generateReportHtml = (userData) => {
         `;
 };
 
-const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary) => {
+const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     let replyText = "";
     let buttons = null;
 
     if (!nextBlock) {
         // Если это последний блок, завершаем диагностику
         await ctx.reply("Диагностика завершена. Спасибо за ответы!");
-
-        const { data: userData } = await supabase
-            .from("diagnostics")
-            .select("*")
-            .eq("user_id", ctx.from.id)
-            .single();
 
         const reportHtml = generateReportHtml(userData);
 
@@ -129,8 +123,8 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, updatedAnswers, up
     const { error: updateError } = await supabase
         .from("diagnostics")
         .update({
-            answers: updatedAnswers,
-            problem_summary: updatedProblemSummary,
+            answers: userData.answers,
+            problem_summary: userData.problem_summary,
             current_block: nextBlock,
             current_question: nextQuestion,
         })
@@ -208,8 +202,7 @@ const handleAnswer = async (ctx) => {
         return;
     }
 
-    const { status, current_block, current_question, answers, problem_summary } =
-        userData;
+    const { status, current_block, current_question, answers, problem_summary } = userData;
 
     // Проверяем, что пользователь находится в режиме диагностики
     if (status !== "full_diagnosis" && status !== "block_diagnosis") {
@@ -217,9 +210,7 @@ const handleAnswer = async (ctx) => {
     }
 
     const currentBlockQuestions = allQuestions[current_block];
-    const currentQuestionData = currentBlockQuestions.find(
-        (q) => q.id === current_question
-    );
+    const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
 
     // Находим ключ ответа по его ID
     const answerKey = Object.keys(currentQuestionData.answers).find(
@@ -232,7 +223,6 @@ const handleAnswer = async (ctx) => {
     }
 
     const answerData = currentQuestionData.answers[answerKey];
-
     const nextQuestionId = answerData.next;
     const recommendation = answerData.recommendation;
 
@@ -257,52 +247,23 @@ const handleAnswer = async (ctx) => {
         });
     }
 
-    let nextBlock = current_block;
-    let nextQuestion = nextQuestionId;
-
-    // --- НАЧАЛО ИСПРАВЛЕННОГО БЛОКА ЛОГИКИ ---
-    // Проверяем, является ли текущий вопрос первым в первом блоке
-    const isFirstQuestionInFirstBlock = (current_block === blocks[0] && current_question === allQuestions[blocks[0]][0].id);
-
-    if (nextQuestionId === null) {
-        if (isFirstQuestionInFirstBlock) {
-            // Если это ответ "Нет" на самый первый вопрос - завершаем всю диагностику
-            nextBlock = null;
-            nextQuestion = null;
-        } else if (status === "full_diagnosis") {
-            // Если это любой другой "конец" блока в режиме полной диагностики, переходим к следующему блоку
-            const currentBlockIndex = blocks.indexOf(current_block);
-            nextBlock = blocks[currentBlockIndex + 1];
-            nextQuestion = allQuestions[nextBlock]?.[0]?.id;
-        } else {
-            // Если диагностика по блокам, завершаем диалог
-            nextBlock = null;
-            nextQuestion = null;
-        }
-    } else {
-        // Если есть явный переход (nextQuestionId не равен null), просто следуем ему
-        nextQuestion = nextQuestionId;
-    }
-    // --- КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ЛОГИКИ ---
-
-    // Если nextQuestion все еще не определен, значит, это последний вопрос в блоке
-    // и мы не обработали его как "конец блока". Это может случиться, если у ответа
-    // просто не указано свойство `next`. В этом случае переходим к следующему блоку.
-    if (nextQuestion === undefined) {
-      const currentBlockIndex = blocks.indexOf(current_block);
-      if (status === "full_diagnosis") {
-        nextBlock = blocks[currentBlockIndex + 1];
-        nextQuestion = allQuestions[nextBlock]?.[0]?.id;
-      } else {
-        nextBlock = null;
-        nextQuestion = null;
-      }
-    }
+    const nextBlock = nextQuestionId === null && status === "full_diagnosis"
+        ? blocks[blocks.indexOf(current_block) + 1]
+        : current_block;
     
-    // Если рекомендация есть, не отправляем следующий вопрос сразу.
-    if (!recommendation) {
-      await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedAnswers, updatedProblemSummary);
-    }
+    const nextQuestion = nextQuestionId === null && status === "full_diagnosis"
+        ? allQuestions[nextBlock]?.[0]?.id
+        : nextQuestionId;
+        
+    // Создаем обновленный объект пользователя
+    const updatedUserData = {
+        ...userData,
+        answers: updatedAnswers,
+        problem_summary: updatedProblemSummary,
+    };
+
+    // Всегда отправляем следующий вопрос после обработки ответа и рекомендации
+    await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedUserData);
 };
 
 export { startDialog, handleAnswer };
