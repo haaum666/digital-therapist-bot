@@ -1,6 +1,9 @@
 import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
-import { handleShowMainMenu, handleShowDiagnosisMenu } from '../src/handlers/menu.js'; // <-- Изменение здесь
+import { handleShowMainMenu, handleShowDiagnosisMenu } from '../src/handlers/menu.js';
+import { handleAbout } from '../src/handlers/about.js'; // <-- Добавлен импорт
+import { handleBlog } from '../src/handlers/blog.js';   // <-- Добавлен импорт
+import { handleContacts } from '../src/handlers/contacts.js'; // <-- Добавлен импорт
 import { blocks } from '../src/data/blocks.js';
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
@@ -23,13 +26,13 @@ bot.on('callback_query', async (ctx) => {
             await handleShowDiagnosisMenu(ctx);
             break;
         case 'about_company':
-            await ctx.reply('Здесь будет информация о компании.');
+            await handleAbout(ctx); // <-- Изменено здесь
             break;
         case 'blog':
-            await ctx.reply('Здесь будут ссылки на блог.');
+            await handleBlog(ctx); // <-- Изменено здесь
             break;
         case 'contacts':
-            await ctx.reply('Здесь будет контактная информация.');
+            await handleContacts(ctx); // <-- Изменено здесь
             break;
         case 'start_full_diagnosis':
             await startDialog(ctx, 'full_diagnosis');
