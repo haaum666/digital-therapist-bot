@@ -17,7 +17,6 @@ import { marketingQuestions } from "../data/communications_marketing.js";
 import { newTechQuestions } from "../data/new_technologies.js";
 
 // Объединяем все вопросы в один объект для удобного доступа
-// Ключи объекта изменены в соответствии с массивом blocks.js
 const allQuestions = {
     "Сайт и цифровизация": zeroLevelQuestions,
     "SEO оптимизация": seoQuestions,
@@ -38,11 +37,9 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     let buttons = null;
 
     if (!nextBlock) {
-        // Если это последний блок, завершаем диагностику
         await ctx.reply("Диагностика завершена. Спасибо за ответы!");
         await ctx.reply("Отчет готов! Чтобы получить его, пожалуйста, обратитесь к менеджеру.");
         
-        // Сбрасываем статус
         await supabase
             .from("diagnostics")
             .update({ status: null, current_block: null, current_question: null })
@@ -57,7 +54,6 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
 
     buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: nextQuestionData.answers[key].id }]);
 
-    // Обновляем базу данных
     const { error: updateError } = await supabase
         .from("diagnostics")
         .update({
@@ -123,7 +119,8 @@ const startDialog = async (ctx, diagnosisType, blockName) => {
     });
 };
 
-const handleAnswer = async (ctx) => {
+// ИСПРАВЛЕНИЕ: Функция теперь принимает необязательный параметр nextQuestionIdFromButton
+const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
     const userAnswerId = ctx.callbackQuery.data;
 
     const menuButtonIds = ['show_main_menu', 'show_diagnosis_menu', 'contacts', 'blog', 'about_company', 'start_diagnosis'];
@@ -150,72 +147,100 @@ const handleAnswer = async (ctx) => {
         return;
     }
 
-    const currentBlockQuestions = allQuestions[current_block];
-    const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
+    let nextQuestion = nextQuestionIdFromButton;
+    let nextBlock = current_block;
 
-    const answerKey = Object.keys(currentQuestionData.answers).find(
-        key => currentQuestionData.answers[key].id === userAnswerId
-    );
+    // Новая логика: если следующий вопрос уже передан из кнопки "Продолжить",
+    // пропускаем поиск в данных и сразу переходим к отправке
+    if (!nextQuestionIdFromButton) {
+        const currentBlockQuestions = allQuestions[current_block];
+        const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
 
-    if (!answerKey) {
-        console.error("Ответ с таким ID не найден:", userAnswerId);
-        return;
-    }
+        const answerKey = Object.keys(currentQuestionData.answers).find(
+            key => currentQuestionData.answers[key].id === userAnswerId
+        );
 
-    const answerData = currentQuestionData.answers[answerKey];
-    const nextQuestionId = answerData.next;
-    const recommendation = answerData.recommendation;
-    
-    console.log("-----------------------------------------");
-    console.log("Текущий вопрос:", current_question);
-    console.log("Текущий блок:", current_block);
-    console.log("ID ответа:", userAnswerId);
-    console.log("Значение nextQuestionId:", nextQuestionId);
-    console.log("Наличие рекомендации:", !!recommendation);
-    console.log("-----------------------------------------");
-
-    const updatedAnswers = { ...answers };
-    updatedAnswers[current_block] = {
-        ...updatedAnswers[current_block],
-        [current_question]: answerKey,
-    };
-
-    const updatedProblemSummary = [...problem_summary];
-    
-    if (recommendation) {
-        updatedProblemSummary.push(recommendation);
-        
-        const buttons = [
-            [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
-            [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
-        ];
-
-        if (nextQuestionId) {
-            buttons.push([{ text: 'Продолжить', callback_data: `continue_dialog_${nextQuestionId}` }]);
+        if (!answerKey) {
+            console.error("Ответ с таким ID не найден:", userAnswerId);
+            return;
         }
+
+        const answerData = currentQuestionData.answers[answerKey];
+        const recommendation = answerData.recommendation;
         
-        await ctx.reply(recommendation.text, {
-            reply_markup: {
-                inline_keyboard: buttons,
-            },
-        });
+        console.log("-----------------------------------------");
+        console.log("Текущий вопрос:", current_question);
+        console.log("Текущий блок:", current_block);
+        console.log("ID ответа:", userAnswerId);
+        console.log("Значение nextQuestionId:", answerData.next);
+        console.log("Наличие рекомендации:", !!recommendation);
+        console.log("-----------------------------------------");
+
+        const updatedAnswers = { ...answers };
+        updatedAnswers[current_block] = {
+            ...updatedAnswers[current_block],
+            [current_question]: answerKey,
+        };
+
+        const updatedProblemSummary = [...problem_summary];
         
-        return;
+        if (recommendation) {
+            updatedProblemSummary.push(recommendation);
+            
+            const buttons = [
+                [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
+                [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
+            ];
+
+            if (answerData.next) {
+                buttons.push([{ text: 'Продолжить', callback_data: `continue_dialog_${answerData.next}` }]);
+            }
+            
+            await ctx.reply(recommendation.text, {
+                reply_markup: {
+                    inline_keyboard: buttons,
+                },
+            });
+            
+            const { error: updateError } = await supabase
+                .from("diagnostics")
+                .update({
+                    answers: updatedAnswers,
+                    problem_summary: updatedProblemSummary,
+                })
+                .eq("user_id", ctx.from.id);
+            
+            if (updateError) {
+                console.error("Ошибка при обновлении данных:", updateError);
+            }
+            return;
+        }
+
+        nextQuestion = answerData.next;
+        if (nextQuestion === null && status === "full_diagnosis") {
+            nextBlock = blocks[blocks.indexOf(current_block) + 1];
+            nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+        }
     }
-
-    const nextBlock = nextQuestionId === null && status === "full_diagnosis"
-        ? blocks[blocks.indexOf(current_block) + 1]
-        : current_block;
-
-    const nextQuestion = nextQuestionId === null && status === "full_diagnosis"
-        ? allQuestions[nextBlock]?.[0]?.id
-        : nextQuestionId;
 
     const updatedUserData = {
         ...userData,
-        answers: updatedAnswers,
-        problem_summary: updatedProblemSummary,
+        answers: {
+            ...userData.answers,
+            [current_block]: {
+                ...userData.answers[current_block],
+                [current_question]: userAnswerId,
+            }
+        },
+        problem_summary: userData.problem_summary
     };
+    
+    // Если мы пришли сюда из-за `continue_dialog_`, то userAnswerId был не `a*`
+    // и его нужно проигнорировать при сохранении ответа,
+    // иначе он будет некорректным.
+    if (nextQuestionIdFromButton) {
+        delete updatedUserData.answers[current_block][current_question];
+    }
 
     await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedUserData);
 };
