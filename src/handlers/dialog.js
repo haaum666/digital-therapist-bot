@@ -166,13 +166,13 @@ const handleAnswer = async (ctx) => {
     const nextQuestionId = answerData.next;
     const recommendation = answerData.recommendation;
     
-    // ДОБАВЛЕНЫ ЛОГИ ДЛЯ ОТЛАДКИ
+    // ИСПРАВЛЕННАЯ СТРОКА: Имя переменной `current_question` теперь верное
     console.log("-----------------------------------------");
-    console.log("Текущий вопрос:", currentQuestion);
+    console.log("Текущий вопрос:", current_question);
     console.log("Текущий блок:", current_block);
     console.log("ID ответа:", userAnswerId);
     console.log("Значение nextQuestionId:", nextQuestionId);
-    console.log("Наличие рекомендации:", !!recommendation); // !!преобразует в true/false
+    console.log("Наличие рекомендации:", !!recommendation);
     console.log("-----------------------------------------");
 
     const updatedAnswers = { ...answers };
@@ -183,19 +183,15 @@ const handleAnswer = async (ctx) => {
 
     const updatedProblemSummary = [...problem_summary];
     
-    // Новая логика для отправки рекомендации
     if (recommendation) {
         updatedProblemSummary.push(recommendation);
         
-        // Массив кнопок, которые будут под сообщением
         const buttons = [
             [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
             [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
         ];
 
-        // Проверяем, есть ли следующий вопрос
         if (nextQuestionId) {
-            // Если есть, добавляем кнопку "Продолжить"
             buttons.push([{ text: 'Продолжить', callback_data: `continue_dialog_${nextQuestionId}` }]);
         }
         
@@ -205,7 +201,6 @@ const handleAnswer = async (ctx) => {
             },
         });
         
-        // Важно: здесь мы прерываем выполнение, чтобы не отправлять следующий вопрос автоматически
         return;
     }
 
