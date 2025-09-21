@@ -18,10 +18,16 @@ bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     await ctx.answerCallbackQuery();
 
-    // Новая логика для кнопки "Продолжить"
     if (callbackData.startsWith('continue_dialog_')) {
         const nextQuestionId = callbackData.split('_')[2];
-        await handleAnswer(ctx, nextQuestionId); // Передаем следующий вопрос в обработчик
+        await handleAnswer(ctx, nextQuestionId);
+        return;
+    }
+
+    // ИСПРАВЛЕНИЕ: Добавлен новый блок для обработки выбора модуля
+    if (callbackData.startsWith('block_')) {
+        const blockName = callbackData.split('_').slice(1).join('_');
+        await startDialog(ctx, 'block_diagnosis', blockName);
         return;
     }
 
