@@ -18,18 +18,19 @@ import { marketingQuestions } from "../data/communications_marketing.js";
 import { newTechQuestions } from "../data/new_technologies.js";
 
 // Объединяем все вопросы в один объект для удобного доступа
+// Ключи объекта изменены в соответствии с массивом blocks.js
 const allQuestions = {
-    "Нулевой уровень и веб-присутствие": zeroLevelQuestions,
-    "SEO и органический поиск": seoQuestions,
+    "Сайт и цифровизация": zeroLevelQuestions,
+    "SEO оптимизация": seoQuestions,
     "Мобильные приложения": mobileQuestions,
     "Реклама и трафик": adsAndTrafficQuestions,
     "CRM и продажи": crmAndSalesQuestions,
     "Автоматизация и процессы": automationQuestions,
-    "E-commerce": ecommerceQuestions,
-    "Финансы и финтех": fintechQuestions,
+    "Интернет-магазин": ecommerceQuestions,
+    "Финансы": fintechQuestions,
     "Кибербезопасность": cybersecurityQuestions,
-    "HR и внутренняя инфраструктура": hrQuestions,
-    "Коммуникации и маркетинг": marketingQuestions,
+    "HR-процессы": hrQuestions,
+    "Цифровой маркетинг": marketingQuestions,
     "Новые технологии": newTechQuestions,
 };
 
