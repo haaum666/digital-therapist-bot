@@ -1,14 +1,13 @@
-import { startDialog } from "./dialog.js";
+// src/handlers/menu.js
 import { showMainMenu, showDiagnosisMenu } from "../utils/menu.js";
 
-// Главное меню
+// Эти функции теперь просто вызывают функции из общего файла
 const handleShowMainMenu = async (ctx) => {
-  await showMainMenu(ctx);
+    await showMainMenu(ctx);
 };
 
-// Меню выбора типа диагностики
 const handleShowDiagnosisMenu = async (ctx) => {
-  await showDiagnosisMenu(ctx);
+    await showDiagnosisMenu(ctx);
 };
 
-export { handleShowMainMenu as showMainMenu, handleShowDiagnosisMenu as showDiagnosisMenu, startDialog };
+export { handleShowMainMenu, handleShowDiagnosisMenu };
