@@ -1,9 +1,9 @@
 import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
 import { handleShowMainMenu, handleShowDiagnosisMenu } from '../src/handlers/menu.js';
-import { handleAbout } from '../src/handlers/about.js'; // <-- Добавлен импорт
-import { handleBlog } from '../src/handlers/blog.js';   // <-- Добавлен импорт
-import { handleContacts } from '../src/handlers/contacts.js'; // <-- Добавлен импорт
+import { handleAbout } from '../src/handlers/about.js';
+import { handleBlog } from '../src/handlers/blog.js';
+import { handleContacts } from '../src/handlers/contacts.js';
 import { blocks } from '../src/data/blocks.js';
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
@@ -18,6 +18,13 @@ bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     await ctx.answerCallbackQuery();
 
+    // Новая логика для кнопки "Продолжить"
+    if (callbackData.startsWith('continue_dialog_')) {
+        const nextQuestionId = callbackData.split('_')[2];
+        await handleAnswer(ctx, nextQuestionId); // Передаем следующий вопрос в обработчик
+        return;
+    }
+
     switch (callbackData) {
         case 'show_main_menu':
             await handleShowMainMenu(ctx);
@@ -26,13 +33,13 @@ bot.on('callback_query', async (ctx) => {
             await handleShowDiagnosisMenu(ctx);
             break;
         case 'about_company':
-            await handleAbout(ctx); // <-- Изменено здесь
+            await handleAbout(ctx);
             break;
         case 'blog':
-            await handleBlog(ctx); // <-- Изменено здесь
+            await handleBlog(ctx);
             break;
         case 'contacts':
-            await handleContacts(ctx); // <-- Изменено здесь
+            await handleContacts(ctx);
             break;
         case 'start_full_diagnosis':
             await startDialog(ctx, 'full_diagnosis');
@@ -51,7 +58,6 @@ bot.on('callback_query', async (ctx) => {
             });
             break;
         default:
-            // Если ни один из стандартных вариантов не сработал, передаем управление в обработчик ответов на вопросы
             await handleAnswer(ctx);
             break;
     }
