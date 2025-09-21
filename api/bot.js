@@ -1,7 +1,5 @@
 import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
-import { supabase } from '../src/database/db.js';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
-import { handleButtonPress } from '../src/handlers/buttons.js';
 import { showMainMenu, showDiagnosisMenu } from '../src/handlers/menu.js';
 import { blocks } from '../src/data/blocks.js';
 
@@ -15,8 +13,8 @@ bot.command('start', async (ctx) => {
 // Обработка нажатий на кнопки
 bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
+    await ctx.answerCallbackQuery();
 
-    // Централизованная логика обработки кнопок
     switch (callbackData) {
         case 'show_main_menu':
             await showMainMenu(ctx);
@@ -54,7 +52,6 @@ bot.on('callback_query', async (ctx) => {
             await handleAnswer(ctx);
             break;
     }
-    await ctx.answerCallbackQuery(); // Убираем анимацию "часов" на кнопке
 });
 
 // Vercel будет использовать эту функцию для обработки запросов
