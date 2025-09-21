@@ -4,18 +4,18 @@ import { InputFile } from "grammy";
 import { showMainMenu } from "./menu.js";
 
 // Импортируем вопросы из всех 12 файлов
-import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
-import { seoQuestions } from "../data/SEO_и_органический_поиск.js";
-import { mobileQuestions } from "../data/Мобильные_приложения.js";
-import { adsAndTrafficQuestions } from "../data/Реклама_и_трафик.js";
-import { crmAndSalesQuestions } from "../data/CRM_и_продажи.js";
-import { automationQuestions } from "../data/Автоматизация_и_процессы.js";
-import { ecommerceQuestions } from "../data/E-commerce.js";
-import { fintechQuestions } from "../data/Финансы_и_финтех.js";
-import { cybersecurityQuestions } from "../data/Кибербезопасность.js";
-import { hrQuestions } from "../data/HR_и_внутренняя_инфраструктура.js";
-import { marketingQuestions } from "../data/Коммуникации_и_маркетинг.js";
-import { newTechQuestions } from "../data/Новые_технологии.js";
+import { zeroLevelQuestions } from "../data/zero_level_web_presence.js";
+import { seoQuestions } from "../data/seo_organic_search.js";
+import { mobileQuestions } from "../data/mobile_apps.js";
+import { adsAndTrafficQuestions } from "../data/ads_traffic.js";
+import { crmAndSalesQuestions } from "../data/crm_sales.js";
+import { automationQuestions } from "../data/automation_processes.js";
+import { ecommerceQuestions } from "../data/e_commerce.js";
+import { fintechQuestions } from "../data/finance_fintech.js";
+import { cybersecurityQuestions } from "../data/cybersecurity.js";
+import { hrQuestions } from "../data/hr_internal_infra.js";
+import { marketingQuestions } from "../data/communications_marketing.js";
+import { newTechQuestions } from "../data/new_technologies.js";
 
 // Объединяем все вопросы в один объект для удобного доступа
 const allQuestions = {
