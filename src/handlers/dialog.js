@@ -119,7 +119,6 @@ const startDialog = async (ctx, diagnosisType, blockName) => {
     });
 };
 
-// ИСПРАВЛЕНИЕ: Функция теперь принимает необязательный параметр nextQuestionIdFromButton
 const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
     const userAnswerId = ctx.callbackQuery.data;
 
@@ -150,8 +149,6 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
     let nextQuestion = nextQuestionIdFromButton;
     let nextBlock = current_block;
 
-    // Новая логика: если следующий вопрос уже передан из кнопки "Продолжить",
-    // пропускаем поиск в данных и сразу переходим к отправке
     if (!nextQuestionIdFromButton) {
         const currentBlockQuestions = allQuestions[current_block];
         const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
@@ -219,7 +216,12 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
         nextQuestion = answerData.next;
         if (nextQuestion === null && status === "full_diagnosis") {
             nextBlock = blocks[blocks.indexOf(current_block) + 1];
-            nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+            
+            if (nextBlock) {
+                 nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+            } else {
+                 nextQuestion = null;
+            }
         }
     }
 
@@ -235,11 +237,53 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
         problem_summary: userData.problem_summary
     };
     
-    // Если мы пришли сюда из-за `continue_dialog_`, то userAnswerId был не `a*`
-    // и его нужно проигнорировать при сохранении ответа,
-    // иначе он будет некорректным.
     if (nextQuestionIdFromButton) {
         delete updatedUserData.answers[current_block][current_question];
+    }
+    
+    if (!nextQuestion) {
+        if (status === "block_diagnosis") {
+            let reportText = "✅ **Диагностика модуля завершена.**\n\n";
+
+            if (updatedUserData.problem_summary.length > 0) {
+                reportText += "Мы выявили несколько ключевых проблем:\n";
+                updatedUserData.problem_summary.forEach((problem) => {
+                    reportText += `\n**${problem.title}**\n${problem.text}\n`;
+                });
+            } else {
+                reportText += "Поздравляем! Мы не выявили критических проблем в этом разделе.";
+            }
+
+            await ctx.reply(reportText, { parse_mode: "Markdown" });
+
+            const buttons = [
+                [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
+                [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
+            ];
+            await ctx.reply("Спасибо за ответы! Вы можете продолжить диагностику или оставить заявку.", {
+                reply_markup: {
+                    inline_keyboard: buttons,
+                },
+            });
+            
+            await supabase
+                .from("diagnostics")
+                .update({ status: null, current_block: null, current_question: null })
+                .eq("user_id", ctx.from.id);
+
+            return;
+        } else {
+            await ctx.reply("Диагностика завершена. Спасибо за ответы!");
+            await ctx.reply("Отчет готов! Чтобы получить его, пожалуйста, обратитесь к менеджеру.");
+
+            await supabase
+                .from("diagnostics")
+                .update({ status: null, current_block: null, current_question: null })
+                .eq("user_id", ctx.from.id);
+
+            await showMainMenu(ctx);
+            return;
+        }
     }
 
     await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedUserData);
