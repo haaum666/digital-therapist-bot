@@ -166,7 +166,6 @@ const handleAnswer = async (ctx) => {
     const nextQuestionId = answerData.next;
     const recommendation = answerData.recommendation;
     
-    // ИСПРАВЛЕННАЯ СТРОКА: Имя переменной `current_question` теперь верное
     console.log("-----------------------------------------");
     console.log("Текущий вопрос:", current_question);
     console.log("Текущий блок:", current_block);
