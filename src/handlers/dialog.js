@@ -1,6 +1,7 @@
+// src/handlers/dialog.js
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-import { showMainMenu } from "../utils/menu.js";
+import { showMainMenu } from "../utils/menu.js"; // <-- Изменение здесь
 
 // Импортируем вопросы из всех 12 файлов, переименованных в латиницу
 import { zeroLevelQuestions } from "../data/zero_level_web_presence.js";
