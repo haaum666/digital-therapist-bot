@@ -1,13 +1,13 @@
 import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
-import { showMainMenu, showDiagnosisMenu } from '../src/handlers/menu.js';
+import { handleShowMainMenu, handleShowDiagnosisMenu } from '../src/handlers/menu.js'; // <-- Изменение здесь
 import { blocks } from '../src/data/blocks.js';
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
 // Обработка команды /start
 bot.command('start', async (ctx) => {
-    await showMainMenu(ctx);
+    await handleShowMainMenu(ctx);
 });
 
 // Обработка нажатий на кнопки
@@ -17,10 +17,10 @@ bot.on('callback_query', async (ctx) => {
 
     switch (callbackData) {
         case 'show_main_menu':
-            await showMainMenu(ctx);
+            await handleShowMainMenu(ctx);
             break;
         case 'show_diagnosis_menu':
-            await showDiagnosisMenu(ctx);
+            await handleShowDiagnosisMenu(ctx);
             break;
         case 'about_company':
             await ctx.reply('Здесь будет информация о компании.');
