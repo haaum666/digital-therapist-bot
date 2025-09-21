@@ -1,4 +1,3 @@
-// src/handlers/menu.js
 import { startDialog } from "./dialog.js";
 
 // Главное меню
@@ -35,44 +34,4 @@ const showDiagnosisMenu = async (ctx) => {
     });
 };
 
-const handleMenu = async (ctx) => {
-    const callbackData = ctx.callbackQuery.data;
-
-    switch (callbackData) {
-        case 'show_diagnosis_menu':
-            // Переход к меню выбора диагностики
-            await showDiagnosisMenu(ctx);
-            break;
-
-        case 'start_full_diagnosis':
-            // Запуск полной диагностики
-            await startDialog(ctx, 'full_diagnosis');
-            break;
-
-        case 'start_block_diagnosis':
-            // Запуск диагностики по блокам
-            await startDialog(ctx, 'block_diagnosis');
-            break;
-
-        case 'about_company':
-            // Заглушка для кнопки "О компании"
-            await ctx.reply('Здесь будет информация о компании.');
-            break;
-
-        case 'blog':
-            // Заглушка для кнопки "Блог"
-            await ctx.reply('Здесь будут ссылки на блог.');
-            break;
-
-        case 'contacts':
-            // Заглушка для кнопки "Контакты"
-            await ctx.reply('Здесь будет контактная информация.');
-            break;
-
-        default:
-            // Обработка других кнопок
-            break;
-    }
-};
-
-export { showMainMenu, handleMenu, showDiagnosisMenu };
+export { showMainMenu, showDiagnosisMenu };
