@@ -1,7 +1,7 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
-import { showMainMenu } from "./menu.js";
+import { showMainMenu } from "./menu.js"; // Добавил импорт для showMainMenu
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -35,16 +35,69 @@ const allQuestions = {
 
 // Функция для генерации HTML-отчета
 const generateReportHtml = (userData) => {
-    const problemSummaryHtml = userData.problem_summary
-        .map(
+    // Группируем проблемы по приоритету
+    const problemsByPriority = userData.problem_summary.reduce((acc, problem) => {
+        const priorityMapping = {
+            'Критический провал': 'Высокий приоритет',
+            'Проблемная зона': 'Средний приоритет',
+            'Упущенная возможность': 'Низкий приоритет',
+        };
+        const mappedPriority = priorityMapping[problem.priority] || 'Без приоритета'; // Используем заданные названия
+        if (!acc[mappedPriority]) {
+            acc[mappedPriority] = [];
+        }
+        acc[mappedPriority].push(problem);
+        return acc;
+    }, {});
+
+    // Определяем порядок приоритетов
+    const priorityOrder = ['Высокий приоритет', 'Средний приоритет', 'Низкий приоритет', 'Без приоритета'];
+
+    const sortedProblemSummaryHtml = priorityOrder.map(priority => {
+        const problems = problemsByPriority[priority];
+        if (!problems || problems.length === 0) {
+            return '';
+        }
+
+        let priorityClass = '';
+        let priorityColor = '';
+
+        switch (priority) {
+            case 'Высокий приоритет':
+                priorityClass = 'high-priority';
+                priorityColor = '#D32F2F'; // Красный
+                break;
+            case 'Средний приоритет':
+                priorityClass = 'medium-priority';
+                priorityColor = '#FFC107'; // Оранжевый
+                break;
+            case 'Низкий приоритет':
+                priorityClass = 'low-priority';
+                priorityColor = '#03A9F4'; // Синий
+                break;
+            default:
+                priorityClass = 'no-priority';
+                priorityColor = '#607D8B'; // Серый
+                break;
+        }
+
+        const problemItemsHtml = problems.map(
             (problem) => `
             <div class="problem-item">
               <p class="problem-title">${problem.title}</p>
               <p class="problem-description">${problem.text}</p>
             </div>
           `
-        )
-        .join("");
+        ).join("");
+
+        return `
+            <div class="priority-section">
+              <h2 class="priority-header ${priorityClass}" style="background-color: ${priorityColor};">${priority}</h2>
+              ${problemItemsHtml}
+            </div>
+        `;
+    }).join('');
+
 
     return `
           <!DOCTYPE html>
@@ -56,14 +109,20 @@ const generateReportHtml = (userData) => {
             <style>
               body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; line-height: 1.6; }
               .report-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-              .report-title { color: #4CAF50; text-align: center; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .company-logo { width: 150px; margin-bottom: 10px; }
+              .report-title { color: #4CAF50; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
               .report-intro, .report-outro { font-size: 16px; margin-bottom: 20px; text-align: justify; }
-              .priority-section { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #ddd; }
-              .priority-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-              .priority-title.самый-высокий-приоритет { color: #D32F2F; border-bottom: 2px solid #D32F2F; padding-bottom: 5px; }
-              .priority-title.высокий-приоритет { color: #FF5722; border-bottom: 2px solid #FF5722; padding-bottom: 5px; }
-              .priority-title.средний-приоритет { color: #FFC107; border-bottom: 2px solid #FFC107; padding-bottom: 5px; }
-              .priority-title.низкий-приоритет { color: #03A9F4; border-bottom: 2px solid #03A9F4; padding-bottom: 5px; }
+              .priority-section { margin-bottom: 30px; }
+              .priority-header {
+                  font-size: 18px;
+                  font-weight: bold;
+                  color: white;
+                  padding: 8px 15px;
+                  border-radius: 5px;
+                  margin-bottom: 15px;
+                  display: inline-block; /* чтобы плашка была по ширине текста */
+              }
               .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
               .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
               .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
@@ -74,11 +133,14 @@ const generateReportHtml = (userData) => {
           </head>
           <body>
             <div class="report-container">
-              <h1 class="report-title">Отчет по диагностике бизнеса</h1>
+              <div class="header">
+                <img src="https://optim.tildacdn.com/tild3832-6562-4566-a337-653230636534/-/resize/248x/-/format/webp/Quantum_logo.png.webp" alt="Логотип Quantum" class="company-logo">
+                <h1 class="report-title">Отчет по диагностике бизнеса</h1>
+              </div>
               <div class="report-intro">
                 Ваш отчет готов! Ниже представлены основные проблемы и упущенные возможности, выявленные в ходе диагностики.
               </div>
-              ${problemSummaryHtml}
+              ${sortedProblemSummaryHtml}
             </div>
           </body>
           </html>
