@@ -1,11 +1,9 @@
-import { Bot, webhookCallback } from 'grammy';
+import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
 import { supabase } from '../src/database/db.js';
 import { startDialog, handleAnswer } from '../src/handlers/dialog.js';
 import { handleButtonPress } from '../src/handlers/buttons.js';
-import { showMainMenu, handleMenu } from '../src/handlers/menu.js';
-import { handleAbout } from '../src/handlers/about.js'; // Добавил импорт
-import { handleBlog } from '../src/handlers/blog.js'; // Добавил импорт
-import { handleContacts } from '../src/handlers/contacts.js'; // Добавил импорт
+import { showMainMenu, showDiagnosisMenu } from '../src/handlers/menu.js';
+import { blocks } from '../src/data/blocks.js';
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -14,28 +12,49 @@ bot.command('start', async (ctx) => {
     await showMainMenu(ctx);
 });
 
-// Обработка текстовых сообщений
-bot.on('message:text', async (ctx) => {
-    await handleAnswer(ctx);
-});
-
 // Обработка нажатий на кнопки
 bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
 
-    // Проверяем, является ли нажатая кнопка частью главного или диагностического меню
-    if (callbackData.startsWith('show_diagnosis_menu') || callbackData.startsWith('start_')) {
-        await handleMenu(ctx);
-    } else if (callbackData === 'about_company') {
-        await handleAbout(ctx);
-    } else if (callbackData === 'blog') {
-        await handleBlog(ctx);
-    } else if (callbackData === 'contacts') {
-        await handleContacts(ctx);
-    } else {
-        // Иначе, передаем управление в старый обработчик
-        await handleButtonPress(ctx);
+    // Централизованная логика обработки кнопок
+    switch (callbackData) {
+        case 'show_main_menu':
+            await showMainMenu(ctx);
+            break;
+        case 'show_diagnosis_menu':
+            await showDiagnosisMenu(ctx);
+            break;
+        case 'about_company':
+            await ctx.reply('Здесь будет информация о компании.');
+            break;
+        case 'blog':
+            await ctx.reply('Здесь будут ссылки на блог.');
+            break;
+        case 'contacts':
+            await ctx.reply('Здесь будет контактная информация.');
+            break;
+        case 'start_full_diagnosis':
+            await startDialog(ctx, 'full_diagnosis');
+            break;
+        case 'start_block_diagnosis':
+            const blockButtons = blocks.map((block) => ({
+                text: block,
+                callback_data: `block_${block}`,
+            }));
+            const inlineKeyboard = new InlineKeyboard();
+            for (const button of blockButtons) {
+                inlineKeyboard.row(InlineKeyboard.text(button.text, button.callback_data));
+            }
+            await ctx.reply('Выберите блок для диагностики:', {
+                reply_markup: inlineKeyboard
+            });
+            break;
+        default:
+            // Если ни один из стандартных вариантов не сработал, передаем управление в обработчик ответов на вопросы
+            await handleAnswer(ctx);
+            break;
     }
+    await ctx.answerCallbackQuery(); // Убираем анимацию "часов" на кнопке
 });
 
 // Vercel будет использовать эту функцию для обработки запросов
