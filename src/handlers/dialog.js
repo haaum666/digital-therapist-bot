@@ -3,7 +3,7 @@ import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
 import { showMainMenu } from "./menu.js";
 
-// Импортируем вопросы из всех 12 файлов
+// Импортируем вопросы из всех 12 файлов, переименованных в латиницу
 import { zeroLevelQuestions } from "../data/zero_level_web_presence.js";
 import { seoQuestions } from "../data/seo_organic_search.js";
 import { mobileQuestions } from "../data/mobile_apps.js";
@@ -33,6 +33,11 @@ const allQuestions = {
     "Новые технологии": newTechQuestions,
 };
 
+// Функция для экранирования HTML-символов
+const escapeHtml = (unsafe) => {
+    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+};
+
 // Функция для генерации HTML-отчета
 const generateReportHtml = (userData) => {
     // Группируем проблемы по приоритету
@@ -42,7 +47,7 @@ const generateReportHtml = (userData) => {
             'Проблемная зона': 'Средний приоритет',
             'Упущенная возможность': 'Низкий приоритет',
         };
-        const mappedPriority = priorityMapping[problem.priority] || 'Без приоритета'; // Используем заданные названия
+        const mappedPriority = priorityMapping[problem.priority] || 'Без приоритета';
         if (!acc[mappedPriority]) {
             acc[mappedPriority] = [];
         }
@@ -84,8 +89,8 @@ const generateReportHtml = (userData) => {
         const problemItemsHtml = problems.map(
             (problem) => `
             <div class="problem-item">
-              <p class="problem-title">${problem.title}</p>
-              <p class="problem-description">${problem.text}</p>
+              <p class="problem-title">${escapeHtml(problem.title)}</p>
+              <p class="problem-description">${escapeHtml(problem.text)}</p>
             </div>
           `
         ).join("");
@@ -120,7 +125,7 @@ const generateReportHtml = (userData) => {
                   padding: 8px 15px;
                   border-radius: 5px;
                   margin-bottom: 15px;
-                  display: inline-block; /* чтобы плашка была по ширине текста */
+                  display: inline-block;
               }
               .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
               .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
@@ -169,15 +174,13 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
             .update({ status: null, current_block: null, current_question: null })
             .eq("user_id", ctx.from.id);
 
-        await showMainMenu(ctx); // Добавил вызов меню в конце теста
-
+        await showMainMenu(ctx);
         return;
     }
 
     const nextQuestionData = allQuestions[nextBlock].find(q => q.id === nextQuestion);
     replyText = nextQuestionData.text;
 
-    // Исправлено: теперь мы получаем текст ответа напрямую из ключей объекта answers
     buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: nextQuestionData.answers[key].id }]);
 
     // Обновляем базу данных
@@ -203,14 +206,13 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     }
 
     await ctx.reply(replyText, replyOptions);
-}
+};
 
 const startDialog = async (ctx, diagnosisType, blockName) => {
     let firstBlock = blocks[0];
     let firstQuestionId = allQuestions[firstBlock][0].id;
     let status = "full_diagnosis";
 
-    // Если это диагностика по блокам
     if (diagnosisType === "block_diagnosis" && blockName) {
         firstBlock = blockName;
         firstQuestionId = allQuestions[firstBlock][0].id;
@@ -250,15 +252,12 @@ const startDialog = async (ctx, diagnosisType, blockName) => {
 const handleAnswer = async (ctx) => {
     const userAnswerId = ctx.callbackQuery.data;
 
-    // Список ID кнопок главного меню
     const menuButtonIds = ['show_main_menu', 'show_diagnosis_menu', 'contacts', 'blog', 'about_company', 'start_diagnosis'];
 
-    // Если нажата кнопка меню, просто игнорируем ее в этом обработчике
     if (menuButtonIds.includes(userAnswerId)) {
         return;
     }
 
-    // Получаем текущие данные пользователя из базы
     const { data: userData, error: fetchError } = await supabase
         .from("diagnostics")
         .select("*")
@@ -273,7 +272,6 @@ const handleAnswer = async (ctx) => {
 
     const { status, current_block, current_question, answers, problem_summary } = userData;
 
-    // Проверяем, что пользователь находится в режиме диагностики
     if (status !== "full_diagnosis" && status !== "block_diagnosis") {
         return;
     }
@@ -281,7 +279,6 @@ const handleAnswer = async (ctx) => {
     const currentBlockQuestions = allQuestions[current_block];
     const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
 
-    // Находим ключ ответа по его ID
     const answerKey = Object.keys(currentQuestionData.answers).find(
         key => currentQuestionData.answers[key].id === userAnswerId
     );
@@ -295,14 +292,12 @@ const handleAnswer = async (ctx) => {
     const nextQuestionId = answerData.next;
     const recommendation = answerData.recommendation;
 
-    // Добавляем ответ пользователя
     const updatedAnswers = { ...answers };
     updatedAnswers[current_block] = {
         ...updatedAnswers[current_block],
         [current_question]: answerKey,
     };
 
-    // Добавляем рекомендацию, если она есть
     const updatedProblemSummary = [...problem_summary];
     if (recommendation) {
         updatedProblemSummary.push(recommendation);
@@ -324,14 +319,12 @@ const handleAnswer = async (ctx) => {
         ? allQuestions[nextBlock]?.[0]?.id
         : nextQuestionId;
 
-    // Создаем обновленный объект пользователя
     const updatedUserData = {
         ...userData,
         answers: updatedAnswers,
         problem_summary: updatedProblemSummary,
     };
 
-    // Всегда отправляем следующий вопрос после обработки ответа и рекомендации
     await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedUserData);
 };
 
