@@ -1,7 +1,9 @@
+// Этот файл отвечает за логику диалога и взаимодействие с пользователем.
+
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
-import { showMainMenu } from "./menu.js"; // Добавил импорт для showMainMenu
+import { showMainMenu } from "./menu.js"; 
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
