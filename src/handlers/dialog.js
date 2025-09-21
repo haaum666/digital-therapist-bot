@@ -251,6 +251,14 @@ const startDialog = async (ctx, diagnosisType, blockName) => {
 const handleAnswer = async (ctx) => {
     const userAnswerId = ctx.callbackQuery.data;
 
+    // Список ID кнопок главного меню
+    const menuButtonIds = ['show_main_menu', 'show_diagnosis_menu', 'contacts', 'blog', 'about_company', 'start_diagnosis'];
+
+    // Если нажата кнопка меню, просто игнорируем ее в этом обработчике
+    if (menuButtonIds.includes(userAnswerId)) {
+        return;
+    }
+
     // Получаем текущие данные пользователя из базы
     const { data: userData, error: fetchError } = await supabase
         .from("diagnostics")
