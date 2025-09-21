@@ -1,9 +1,7 @@
-// Этот файл отвечает за логику диалога и взаимодействие с пользователем.
-
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
 import { InputFile } from "grammy";
-import { showMainMenu } from "./menu.js"; 
+import { showMainMenu } from "./menu.js";
 
 // Импортируем вопросы из всех 12 файлов
 import { zeroLevelQuestions } from "../data/Нулевой_уровень_и_веб-присутствие.js";
@@ -99,7 +97,6 @@ const generateReportHtml = (userData) => {
             </div>
         `;
     }).join('');
-
 
     return `
           <!DOCTYPE html>
@@ -322,11 +319,11 @@ const handleAnswer = async (ctx) => {
     const nextBlock = nextQuestionId === null && status === "full_diagnosis"
         ? blocks[blocks.indexOf(current_block) + 1]
         : current_block;
-    
+
     const nextQuestion = nextQuestionId === null && status === "full_diagnosis"
         ? allQuestions[nextBlock]?.[0]?.id
         : nextQuestionId;
-        
+
     // Создаем обновленный объект пользователя
     const updatedUserData = {
         ...userData,
