@@ -1,7 +1,6 @@
-// src/handlers/dialog.js
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-import { showMainMenu } from "../utils/menu.js"; // <-- Изменение здесь
+import { showMainMenu } from "../utils/menu.js";
 
 // Импортируем вопросы из всех 12 файлов, переименованных в латиницу
 import { zeroLevelQuestions } from "../data/zero_level_web_presence.js";
@@ -184,6 +183,7 @@ const handleAnswer = async (ctx) => {
                 ],
             },
         });
+        return;
     }
 
     const nextBlock = nextQuestionId === null && status === "full_diagnosis"
