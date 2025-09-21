@@ -1,6 +1,5 @@
 import { supabase } from "../database/db.js";
 import { blocks } from "../data/blocks.js";
-import { InputFile } from "grammy";
 import { showMainMenu } from "./menu.js";
 
 // Импортируем вопросы из всех 12 файлов, переименованных в латиницу
@@ -33,124 +32,6 @@ const allQuestions = {
     "Новые технологии": newTechQuestions,
 };
 
-// Функция для экранирования HTML-символов
-const escapeHtml = (unsafe) => {
-    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-};
-
-// Функция для генерации HTML-отчета
-const generateReportHtml = (userData) => {
-    // Группируем проблемы по приоритету
-    const problemsByPriority = userData.problem_summary.reduce((acc, problem) => {
-        const priorityMapping = {
-            'Критический провал': 'Высокий приоритет',
-            'Проблемная зона': 'Средний приоритет',
-            'Упущенная возможность': 'Низкий приоритет',
-        };
-        const mappedPriority = priorityMapping[problem.priority] || 'Без приоритета';
-        if (!acc[mappedPriority]) {
-            acc[mappedPriority] = [];
-        }
-        acc[mappedPriority].push(problem);
-        return acc;
-    }, {});
-
-    // Определяем порядок приоритетов
-    const priorityOrder = ['Высокий приоритет', 'Средний приоритет', 'Низкий приоритет', 'Без приоритета'];
-
-    const sortedProblemSummaryHtml = priorityOrder.map(priority => {
-        const problems = problemsByPriority[priority];
-        if (!problems || problems.length === 0) {
-            return '';
-        }
-
-        let priorityClass = '';
-        let priorityColor = '';
-
-        switch (priority) {
-            case 'Высокий приоритет':
-                priorityClass = 'high-priority';
-                priorityColor = '#D32F2F'; // Красный
-                break;
-            case 'Средний приоритет':
-                priorityClass = 'medium-priority';
-                priorityColor = '#FFC107'; // Оранжевый
-                break;
-            case 'Низкий приоритет':
-                priorityClass = 'low-priority';
-                priorityColor = '#03A9F4'; // Синий
-                break;
-            default:
-                priorityClass = 'no-priority';
-                priorityColor = '#607D8B'; // Серый
-                break;
-        }
-
-        const problemItemsHtml = problems.map(
-            (problem) => `
-            <div class="problem-item">
-              <p class="problem-title">${escapeHtml(problem.title)}</p>
-              <p class="problem-description">${escapeHtml(problem.text)}</p>
-            </div>
-          `
-        ).join("");
-
-        return `
-            <div class="priority-section">
-              <h2 class="priority-header ${priorityClass}" style="background-color: ${priorityColor};">${priority}</h2>
-              ${problemItemsHtml}
-            </div>
-        `;
-    }).join('');
-
-    return `
-          <!DOCTYPE html>
-          <html lang="ru">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Отчет по диагностике бизнеса</title>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; line-height: 1.6; }
-              .report-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-              .header { text-align: center; margin-bottom: 20px; }
-              .company-logo { width: 150px; margin-bottom: 10px; }
-              .report-title { color: #4CAF50; font-size: 28px; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
-              .report-intro, .report-outro { font-size: 16px; margin-bottom: 20px; text-align: justify; }
-              .priority-section { margin-bottom: 30px; }
-              .priority-header {
-                  font-size: 18px;
-                  font-weight: bold;
-                  color: white;
-                  padding: 8px 15px;
-                  border-radius: 5px;
-                  margin-bottom: 15px;
-                  display: inline-block;
-              }
-              .problem-item { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-              .problem-title { font-size: 16px; font-weight: bold; color: #555; margin-top: 0; margin-bottom: 5px; }
-              .problem-description { font-size: 14px; color: #666; margin-bottom: 0; }
-              .cta-button { text-align: center; margin-top: 30px; }
-              .cta-button a { background-color: #4CAF50; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-size: 18px; transition: background-color 0.3s ease; }
-              .cta-button a:hover { background-color: #45a049; }
-            </style>
-          </head>
-          <body>
-            <div class="report-container">
-              <div class="header">
-                <img src="https://optim.tildacdn.com/tild3832-6562-4566-a337-653230636534/-/resize/248x/-/format/webp/Quantum_logo.png.webp" alt="Логотип Quantum" class="company-logo">
-                <h1 class="report-title">Отчет по диагностике бизнеса</h1>
-              </div>
-              <div class="report-intro">
-                Ваш отчет готов! Ниже представлены основные проблемы и упущенные возможности, выявленные в ходе диагностики.
-              </div>
-              ${sortedProblemSummaryHtml}
-            </div>
-          </body>
-          </html>
-        `;
-};
-
 const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     let replyText = "";
     let buttons = null;
@@ -158,16 +39,8 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     if (!nextBlock) {
         // Если это последний блок, завершаем диагностику
         await ctx.reply("Диагностика завершена. Спасибо за ответы!");
-
-        const reportHtml = generateReportHtml(userData);
-
-        try {
-            await ctx.replyWithDocument(new InputFile(Buffer.from(reportHtml), `Отчет_${userData.username}.html`));
-        } catch (error) {
-            console.error("Ошибка при отправке отчета:", error);
-            await ctx.reply("Не удалось сгенерировать отчет. Пожалуйста, попробуйте еще раз.");
-        }
-
+        await ctx.reply("Отчет готов! Чтобы получить его, пожалуйста, обратитесь к менеджеру.");
+        
         // Сбрасываем статус
         await supabase
             .from("diagnostics")
