@@ -50,6 +50,14 @@ const sendNextQuestion = async (ctx, nextBlock, nextQuestion, userData) => {
     }
 
     const nextQuestionData = allQuestions[nextBlock].find(q => q.id === nextQuestion);
+    
+    // ДОБАВЛЕНО ИСПРАВЛЕНИЕ: Проверка на существование вопроса
+    if (!nextQuestionData) {
+        console.error(`Ошибка: Вопрос с ID ${nextQuestion} не найден в блоке ${nextBlock}`);
+        await ctx.reply("Произошла ошибка в логике вопросов. Пожалуйста, начните заново.");
+        return;
+    }
+    
     replyText = nextQuestionData.text;
 
     buttons = Object.keys(nextQuestionData.answers || {}).map(key => [{ text: key, callback_data: nextQuestionData.answers[key].id }]);
@@ -89,6 +97,7 @@ const startDialog = async (ctx, diagnosisType, blockName) => {
         status = "block_diagnosis";
     }
 
+    // ВАЖНО: При старте новой диагностики сбрасываем старые рекомендации
     const { data, error } = await supabase
         .from("diagnostics")
         .upsert(
@@ -148,8 +157,14 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
 
     let nextQuestion = nextQuestionIdFromButton;
     let nextBlock = current_block;
+    
+    // Инициализируем данные для обновления
+    let updatedAnswers = { ...answers };
+    let updatedProblemSummary = [...problem_summary];
+
 
     if (!nextQuestionIdFromButton) {
+        // Мы обрабатываем обычный ответ на вопрос (не нажатие "Продолжить")
         const currentBlockQuestions = allQuestions[current_block];
         const currentQuestionData = currentBlockQuestions.find((q) => q.id === current_question);
 
@@ -173,22 +188,25 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
         console.log("Наличие рекомендации:", !!recommendation);
         console.log("-----------------------------------------");
 
-        const updatedAnswers = { ...answers };
+        // 1. Обновление ответов
+        updatedAnswers = { ...answers };
         updatedAnswers[current_block] = {
             ...updatedAnswers[current_block],
-            [current_question]: answerKey,
+            [current_question]: answerKey, // Сохраняем текстовое значение ответа
         };
 
-        const updatedProblemSummary = [...problem_summary];
-        
+        // 2. Обновление рекомендаций
+        updatedProblemSummary = [...problem_summary];
         if (recommendation) {
             updatedProblemSummary.push(recommendation);
             
+            // Если есть рекомендация, мы показываем ее и кнопку "Продолжить"
             const buttons = [
                 [{ text: 'Оставить заявку', url: 'https://t.me/Quantumdevelop' }],
                 [{ text: 'Вернуться в начало', callback_data: 'show_main_menu' }],
             ];
 
+            // Если есть next, добавляем кнопку "Продолжить"
             if (answerData.next) {
                 buttons.push([{ text: 'Продолжить', callback_data: `continue_dialog_${answerData.next}` }]);
             }
@@ -199,6 +217,7 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
                 },
             });
             
+            // Сохраняем состояние после ответа и рекомендации
             const { error: updateError } = await supabase
                 .from("diagnostics")
                 .update({
@@ -210,44 +229,64 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
             if (updateError) {
                 console.error("Ошибка при обновлении данных:", updateError);
             }
-            return;
+            return; // Завершаем функцию, так как ждем нажатия "Продолжить"
         }
-
+        
+        // 3. Если рекомендации нет, определяем следующий вопрос/блок
         nextQuestion = answerData.next;
         if (nextQuestion === null && status === "full_diagnosis") {
             nextBlock = blocks[blocks.indexOf(current_block) + 1];
             
             if (nextBlock) {
-                 nextQuestion = allQuestions[nextBlock]?.[0]?.id;
+                 // Берем ID первого вопроса из следующего блока
+                 nextQuestion = allQuestions[nextBlock]?.[0]?.id; 
+                 // ИСПРАВЛЕНИЕ: Добавлена проверка на наличие вопроса
+                 if (!nextQuestion) {
+                    console.error(`Ошибка: В блоке ${nextBlock} нет вопросов.`);
+                    nextBlock = null; // Завершаем диагностику, если блок пуст
+                 }
             } else {
-                 nextQuestion = null;
+                 nextQuestion = null; // Диагностика полностью завершена
             }
         }
+    } else {
+        // Мы обрабатываем нажатие кнопки "Продолжить"
+        // Нам не нужно обновлять answers и problem_summary, они уже были обновлены
+        // после получения рекомендации.
     }
 
-    const updatedUserData = {
-        ...userData,
-        answers: {
-            ...userData.answers,
-            [current_block]: {
-                ...userData.answers[current_block],
-                [current_question]: userAnswerId,
-            }
-        },
-        problem_summary: userData.problem_summary
-    };
-    
-    if (nextQuestionIdFromButton) {
-        delete updatedUserData.answers[current_block][current_question];
-    }
-    
+
+    // Если nextQuestion === null (конец модуля/диагностики), то здесь отправляем финальный отчет.
     if (!nextQuestion) {
         if (status === "block_diagnosis") {
-            let reportText = "✅ **Диагностика модуля завершена.**\n\n";
+            // В режиме по блокам, отчет показывается сразу, и используется updatedProblemSummary
+            // Но чтобы получить актуальный problem_summary (если это был ответ без рекомендации),
+            // нужно получить его из базы данных
+            
+            // Выполняем сохранение ответов, если это был ответ без рекомендации
+            if (!nextQuestionIdFromButton) {
+                const { error: updateError } = await supabase
+                    .from("diagnostics")
+                    .update({
+                        answers: updatedAnswers,
+                        problem_summary: updatedProblemSummary,
+                    })
+                    .eq("user_id", ctx.from.id);
 
-            if (updatedUserData.problem_summary.length > 0) {
+                if (updateError) {
+                    console.error("Ошибка при обновлении данных:", updateError);
+                }
+            }
+            
+            let reportText = "✅ **Диагностика модуля завершена.**\n\n";
+            
+            // Поскольку мы завершаем диагностику, берем финальные данные из текущего объекта userData
+            // (или обновленного, если ответ был без рекомендации)
+            const finalProblemSummary = nextQuestionIdFromButton ? problem_summary : updatedProblemSummary;
+
+            if (finalProblemSummary.length > 0) {
                 reportText += "Мы выявили несколько ключевых проблем:\n";
-                updatedUserData.problem_summary.forEach((problem) => {
+                finalProblemSummary.forEach((problem) => {
                     reportText += `\n**${problem.title}**\n${problem.text}\n`;
                 });
             } else {
@@ -273,6 +312,23 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
 
             return;
         } else {
+            // Режим full_diagnosis завершен
+            
+            // Выполняем сохранение ответов, если это был ответ без рекомендации
+            if (!nextQuestionIdFromButton) {
+                const { error: updateError } = await supabase
+                    .from("diagnostics")
+                    .update({
+                        answers: updatedAnswers,
+                        problem_summary: updatedProblemSummary,
+                    })
+                    .eq("user_id", ctx.from.id);
+
+                if (updateError) {
+                    console.error("Ошибка при обновлении данных:", updateError);
+                }
+            }
+
             await ctx.reply("Диагностика завершена. Спасибо за ответы!");
             await ctx.reply("Отчет готов! Чтобы получить его, пожалуйста, обратитесь к менеджеру.");
 
@@ -286,7 +342,16 @@ const handleAnswer = async (ctx, nextQuestionIdFromButton = null) => {
         }
     }
 
-    await sendNextQuestion(ctx, nextBlock, nextQuestion, updatedUserData);
+    // Если есть следующий вопрос, переходим к нему
+    // Если это был ответ без рекомендации, updatedAnswers уже содержит нужный ответ.
+    // Если это было нажатие "Продолжить", updatedAnswers будет старым, но в базе уже есть нужные данные.
+    // Передаем то, что было обновлено.
+    const finalUserData = {
+        answers: updatedAnswers,
+        problem_summary: updatedProblemSummary,
+    };
+    
+    await sendNextQuestion(ctx, nextBlock, nextQuestion, finalUserData);
 };
 
 export { startDialog, handleAnswer };
